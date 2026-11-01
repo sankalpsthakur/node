@@ -120,3 +120,34 @@ suite('Statement with ArrayBuffer and SharedArrayBuffer', () => {
     });
   }
 });
+
+suite('Zero-length binary values', () => {
+  const values = [
+    ['Uint8Array', () => new Uint8Array()],
+    ['Uint8Array on an empty ArrayBuffer', () => new Uint8Array(new ArrayBuffer(0))],
+    ['DataView on an empty ArrayBuffer', () => new DataView(new ArrayBuffer(0))],
+    ['ArrayBuffer', () => new ArrayBuffer(0)],
+    ['SharedArrayBuffer', () => new SharedArrayBuffer(0)],
+  ];
+
+  for (const [displayName, create] of values) {
+    test(`${displayName} is bound as an empty BLOB`, (t) => {
+      const db = new Database(':memory:');
+      t.after(() => { db.close(); });
+      db.exec('CREATE TABLE test (data BLOB)');
+      db.prepare('INSERT INTO test VALUES (?)').run(create());
+      const row = db.prepare('SELECT data, typeof(data) AS type FROM test').get();
+      t.assert.strictEqual(row.type, 'blob');
+      t.assert.ok(row.data instanceof Uint8Array);
+      t.assert.strictEqual(row.data.length, 0);
+    });
+
+    test(`${displayName} returned from a function is an empty BLOB`, (t) => {
+      const db = new Database(':memory:');
+      t.after(() => { db.close(); });
+      db.function('empty', create);
+      const row = db.prepare('SELECT typeof(empty()) AS type').get();
+      t.assert.strictEqual(row.type, 'blob');
+    });
+  }
+});
