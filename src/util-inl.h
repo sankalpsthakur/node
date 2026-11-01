@@ -638,13 +638,15 @@ void ArrayBufferViewContents<T, S>::ReadValue(v8::Local<v8::Value> buf) {
   } else if (buf->IsArrayBuffer()) {
     auto ab = buf.As<v8::ArrayBuffer>();
     length_ = ab->ByteLength();
-    data_ = static_cast<T*>(ab->Data());
+    auto ab_data = ab->Data();
+    data_ = ab_data != nullptr ? static_cast<T*>(ab_data) : stack_storage_;
     was_detached_ = ab->WasDetached();
   } else {
     CHECK(buf->IsSharedArrayBuffer());
     auto sab = buf.As<v8::SharedArrayBuffer>();
     length_ = sab->ByteLength();
-    data_ = static_cast<T*>(sab->Data());
+    auto sab_data = sab->Data();
+    data_ = sab_data != nullptr ? static_cast<T*>(sab_data) : stack_storage_;
   }
 }
 
